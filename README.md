@@ -1,134 +1,150 @@
-# 🚀 HireFast — AI-Based Resume Screening System
+# 🤖 AI-Powered Recruitment & Resume Screening System
 
-**Minor Project | B.Tech CSE | ITM University**
-Submitted to: Dr. Manali Shukla
-Supervisor: Ms. Harshita Chaurasiya
-Team: Shreya Savita · Muskan Gupta · Priya Sarkar
+An intelligent web-based recruitment platform that automates resume screening and matches candidates with job descriptions using **AI, NLP, and semantic similarity**.
 
 ---
 
-## Project Overview
+## ✨ Key Features
 
-An intelligent web-based recruitment system that automatically screens
-candidate resumes and matches them with job descriptions using AI and NLP,
-exactly as described in the project synopsis.
-
----
-
-## Tech Stack
-
-| Layer       | Technology                          |
-|-------------|-------------------------------------|
-| Frontend    | Streamlit (unified app)             |
-| Backend     | FastAPI                             |
-| Database    | PostgreSQL + SQLAlchemy ORM         |
-| Auth        | JWT (python-jose + bcrypt)          |
-| NLP         | spaCy (en_core_web_sm)              |
-| AI Model    | Sentence Transformers all-MiniLM-L6-v2 |
-| Similarity  | Cosine Similarity (scikit-learn)    |
-| Resume Parse| pdfplumber (PDF) + python-docx (DOCX) |
+* 🔐 Role-based authentication (HR & Candidate)
+* 📄 Resume upload (PDF/DOCX)
+* 🧠 AI-powered resume parsing & preprocessing
+* 🔍 Semantic matching using Sentence Transformers
+* 📊 Candidate ranking with similarity scores (0–100%)
+* ✅ HR dashboard for shortlist / reject decisions
+* 📁 Structured backend with scalable architecture
 
 ---
 
-## Folder Structure
+## 🏗️ System Architecture
+
+```
+Frontend (Streamlit)
+        ↓
+FastAPI Backend (Auth, Jobs, Applications)
+        ↓
+NLP Pipeline (spaCy + Transformers)
+        ↓
+PostgreSQL (Users, Jobs, Applications, Scores)
+```
+
+---
+
+## 📂 Project Structure
 
 ```
 hirefast/
 ├── backend/
 │   ├── main.py                 # FastAPI entry + auth endpoints
 │   ├── database.py             # PostgreSQL connection
-│   ├── models.py               # ORM: users, jobs, applications, match_scores
-│   ├── auth.py                 # JWT tokens, password hashing, role guards
-│   ├── job_routes.py           # Job CRUD + filter + shortlist/reject
-│   ├── application_routes.py   # Apply (resume upload) + view applicants
-│   └── ai_screening.py         # /run_screening — full AI pipeline
+│   ├── models.py               # ORM models
+│   ├── auth.py                 # JWT authentication & security
+│   ├── job_routes.py           # Job management APIs
+│   ├── application_routes.py   # Application handling APIs
+│   └── ai_screening.py         # AI screening pipeline
+│
 ├── nlp/
-│   ├── resume_parser.py        # pdfplumber + python-docx text extraction
-│   ├── preprocessing.py        # spaCy NLP pipeline
-│   └── similarity_model.py     # Sentence Transformers + cosine similarity
-├── uploads/resumes/            # Uploaded resume files stored here
-├── app.py                      # Unified Streamlit frontend
-├── schema.sql                  # PostgreSQL DDL
+│   ├── resume_parser.py        # Resume text extraction
+│   ├── preprocessing.py        # NLP cleaning pipeline
+│   └── similarity_model.py     # Embeddings + similarity scoring
+│
+├── uploads/resumes/            # Stored resumes
+├── app.py                      # Streamlit frontend
+├── schema.sql                  # Database schema
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Setup Instructions
+## ⚙️ Setup Instructions
 
-### 1. Install dependencies
+### 1️⃣ Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
-### 2. Set up PostgreSQL
+### 2️⃣ Setup PostgreSQL
+
 ```bash
 psql -U postgres -c "CREATE DATABASE hirefast;"
 psql -U postgres -d hirefast -f schema.sql
 ```
 
-### 3. Configure DB URL
-Edit `backend/database.py` or set environment variable:
+### 3️⃣ Configure Environment
+
 ```bash
 export DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/hirefast"
 ```
 
-### 4. Start FastAPI backend
+---
+
+## ▶️ Run the Application
+
+### Backend (FastAPI)
+
 ```bash
 cd backend
 uvicorn main:app --reload --port 8000
 ```
-API docs: http://localhost:8000/docs
 
-### 5. Start Streamlit frontend
+🔗 API Docs: http://localhost:8000/docs
+
+### Frontend (Streamlit)
+
 ```bash
 streamlit run app.py --server.port 8501
 ```
-App: http://localhost:8501
+
+🔗 App: http://localhost:8501
 
 ---
 
-## AI Pipeline (Synopsis Methodology)
+## 🧠 AI Pipeline (How It Works)
 
-```
-1. Resume Collection   → Candidate uploads PDF/DOCX via apply form
-2. Text Extraction     → pdfplumber (PDF) / python-docx (DOCX)
-3. NLP Processing      → spaCy: lowercase → remove noise →
-                         tokenise → remove stopwords → lemmatise
-4. Semantic Matching   → Sentence Transformer (all-MiniLM-L6-v2)
-                         converts text to 384-dim embeddings
-5. Candidate Ranking   → Cosine similarity score (0–100%)
-                         sorted highest → lowest
-6. HR Interface        → Ranked list with scores, shortlist/reject buttons
-```
+1. 📥 Candidate uploads resume
+2. 📄 Text extracted using `pdfplumber` / `python-docx`
+3. 🧹 Preprocessing via spaCy (tokenization, stopword removal, lemmatization)
+4. 🔢 Text converted into embeddings using `all-MiniLM-L6-v2`
+5. 📊 Cosine similarity computed against job description
+6. 🏆 Candidates ranked from highest to lowest match
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
-| Method | Endpoint                    | Role      | Description              |
-|--------|-----------------------------|-----------|--------------------------|
-| POST   | /register                   | Any       | Register HR or Candidate |
-| POST   | /login                      | Any       | Login, get JWT token     |
-| POST   | /create_job                 | HR        | Post a new job           |
-| GET    | /jobs                       | Any       | List all jobs            |
-| POST   | /apply_job                  | Candidate | Apply + upload resume    |
-| GET    | /my_applications            | Candidate | View own applications    |
-| GET    | /job_applicants/{job_id}    | HR        | View applicants for job  |
-| POST   | /run_screening/{job_id}     | HR        | Run AI screening         |
-| GET    | /filter_candidates          | HR        | Filter by edu/sector/skill|
-| PUT    | /shortlist/{application_id} | HR        | Shortlist candidate      |
-| PUT    | /reject/{application_id}    | HR        | Reject candidate         |
+| Method | Endpoint                    | Description         |
+| ------ | --------------------------- | ------------------- |
+| POST   | /register                   | Register user       |
+| POST   | /login                      | Authenticate user   |
+| POST   | /create_job                 | Create job (HR)     |
+| GET    | /jobs                       | List jobs           |
+| POST   | /apply_job                  | Apply with resume   |
+| GET    | /my_applications            | Candidate dashboard |
+| GET    | /job_applicants/{job_id}    | HR view applicants  |
+| POST   | /run_screening/{job_id}     | Run AI ranking      |
+| PUT    | /shortlist/{application_id} | Shortlist           |
+| PUT    | /reject/{application_id}    | Reject              |
 
 ---
 
-## Database Schema
+## 🗄️ Database Design
 
-| Table        | Key Columns                                      |
-|--------------|--------------------------------------------------|
-| users        | id, name, email, password (bcrypt), role         |
-| jobs         | job_id, title, description, sector, skills       |
-| applications | id, candidate_id, job_id, resume_path, status    |
-| match_scores | id, candidate_id, job_id, score (0–100)          |
+| Table        | Description                    |
+| ------------ | ------------------------------ |
+| users        | User accounts (HR / Candidate) |
+| jobs         | Job postings                   |
+| applications | Candidate applications         |
+| match_scores | AI-generated similarity scores |
+
+---
+
+## 🚀 Future Improvements
+
+* 💬 AI interview chatbot
+* 📊 Resume feedback system
+* 🌐 Multi-language resume support
+* ☁️ Cloud deployment (AWS / Docker)
+
