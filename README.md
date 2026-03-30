@@ -1,22 +1,22 @@
-# 🤖 AI-Powered Recruitment & Resume Screening System
+#  AI-Based Recruitment & Resume Screening System
 
 An intelligent web-based recruitment platform that automates resume screening and matches candidates with job descriptions using **AI, NLP, and semantic similarity**.
 
 ---
 
-## ✨ Key Features
+##Key Features
 
-* 🔐 Role-based authentication (HR & Candidate)
-* 📄 Resume upload (PDF/DOCX)
-* 🧠 AI-powered resume parsing & preprocessing
-* 🔍 Semantic matching using Sentence Transformers
-* 📊 Candidate ranking with similarity scores (0–100%)
-* ✅ HR dashboard for shortlist / reject decisions
-* 📁 Structured backend with scalable architecture
+*  Role-based authentication (HR & Candidate)
+*  Resume upload (PDF/DOCX)
+*  AI-powered resume parsing & preprocessing
+*  Semantic matching using Sentence Transformers
+*  Candidate ranking with similarity scores (0–100%)
+*  HR dashboard for shortlist / reject decisions
+*  Structured backend with scalable architecture
 
 ---
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 Frontend (Streamlit)
@@ -30,7 +30,7 @@ PostgreSQL (Users, Jobs, Applications, Scores)
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 hirefast/
@@ -59,21 +59,21 @@ hirefast/
 
 ## ⚙️ Setup Instructions
 
-### 1️⃣ Install Dependencies
+### 1️ Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
-### 2️⃣ Setup PostgreSQL
+### 2️ Setup PostgreSQL
 
 ```bash
 psql -U postgres -c "CREATE DATABASE hirefast;"
 psql -U postgres -d hirefast -f schema.sql
 ```
 
-### 3️⃣ Configure Environment
+###  Configure Environment
 
 ```bash
 export DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/hirefast"
@@ -81,7 +81,7 @@ export DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/hirefast"
 
 ---
 
-## ▶️ Run the Application
+##  Run the Application
 
 ### Backend (FastAPI)
 
@@ -90,7 +90,7 @@ cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-🔗 API Docs: http://localhost:8000/docs
+ API Docs: http://localhost:8000/docs
 
 ### Frontend (Streamlit)
 
@@ -98,22 +98,22 @@ uvicorn main:app --reload --port 8000
 streamlit run app.py --server.port 8501
 ```
 
-🔗 App: http://localhost:8501
+ App: http://localhost:8501
 
 ---
 
-## 🧠 AI Pipeline (How It Works)
+##  AI Pipeline (How It Works)
 
-1. 📥 Candidate uploads resume
-2. 📄 Text extracted using `pdfplumber` / `python-docx`
-3. 🧹 Preprocessing via spaCy (tokenization, stopword removal, lemmatization)
-4. 🔢 Text converted into embeddings using `all-MiniLM-L6-v2`
-5. 📊 Cosine similarity computed against job description
-6. 🏆 Candidates ranked from highest to lowest match
+1.  Candidate uploads resume
+2.  Text extracted using `pdfplumber` / `python-docx`
+3.  Preprocessing via spaCy (tokenization, stopword removal, lemmatization)
+4.  Text converted into embeddings using `all-MiniLM-L6-v2`
+5.  Cosine similarity computed against job description
+6.  Candidates ranked from highest to lowest match
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 | Method | Endpoint                    | Description         |
 | ------ | --------------------------- | ------------------- |
@@ -130,7 +130,7 @@ streamlit run app.py --server.port 8501
 
 ---
 
-## 🗄️ Database Design
+## Database Design
 
 | Table        | Description                    |
 | ------------ | ------------------------------ |
@@ -138,13 +138,4 @@ streamlit run app.py --server.port 8501
 | jobs         | Job postings                   |
 | applications | Candidate applications         |
 | match_scores | AI-generated similarity scores |
-
----
-
-## 🚀 Future Improvements
-
-* 💬 AI interview chatbot
-* 📊 Resume feedback system
-* 🌐 Multi-language resume support
-* ☁️ Cloud deployment (AWS / Docker)
 
