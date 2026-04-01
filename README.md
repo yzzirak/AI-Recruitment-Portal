@@ -2,8 +2,6 @@
 
 An intelligent web-based recruitment platform that automates resume screening and matches candidates with job descriptions using **AI, NLP, and semantic similarity**.
 
----
-
 ##Key Features
 
 *  Role-based authentication (HR & Candidate)

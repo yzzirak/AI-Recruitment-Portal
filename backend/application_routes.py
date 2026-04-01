@@ -1,3 +1,7 @@
+"""
+application_routes.py
+Applications — HR sees only applicants for their own jobs.
+"""
 import os, shutil
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
@@ -19,20 +23,24 @@ async def apply_job(
     db:     Session = Depends(get_db),
     current_user: models.User = Depends(require_candidate)
 ):
+    # Job must exist
     job = db.query(models.Job).filter(models.Job.job_id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    # Valid file type
     ext = os.path.splitext(resume.filename)[1].lower()
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail="Only PDF and DOCX resumes accepted")
 
+    # No duplicate applications
     if db.query(models.Application).filter(
         models.Application.candidate_id == current_user.id,
         models.Application.job_id       == job_id
     ).first():
         raise HTTPException(status_code=400, detail="You have already applied for this job")
 
+    # Save resume — candidate_id_job_id.ext
     filename  = f"{current_user.id}_{job_id}{ext}"
     file_path = os.path.join(RESUME_DIR, filename)
     with open(file_path, "wb") as buf:
@@ -61,10 +69,7 @@ def my_applications(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_candidate)
 ):
-    """
-    Returns job title, company name, status.
-    AI score intentionally excluded from candidate view.
-    """
+    """Candidate view — status only, no AI score."""
     rows = (
         db.query(models.Application, models.Job)
         .join(models.Job, models.Application.job_id == models.Job.job_id)
@@ -96,9 +101,16 @@ def job_applicants(
     if current_user.role != "HR":
         raise HTTPException(status_code=403, detail="HR access only")
 
-    job = db.query(models.Job).filter(models.Job.job_id == job_id).first()
+    # Job must exist AND belong to this HR
+    job = db.query(models.Job).filter(
+        models.Job.job_id    == job_id,
+        models.Job.posted_by == current_user.id       # ← key check
+    ).first()
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=403,
+            detail="Job not found or you do not have access to this job."
+        )
 
     rows = (
         db.query(models.Application, models.User)

@@ -1,3 +1,7 @@
+"""
+ai_screening.py
+AI screening — HR can only screen their own jobs.
+"""
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "nlp"))
 
@@ -6,8 +10,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from auth import require_hr
 import models
-from resume_parser   import extract_text_from_resume
-from preprocessing   import preprocess_text
+from resume_parser    import extract_text_from_resume
+from preprocessing    import preprocess_text
 from similarity_model import compute_similarity
 
 router = APIRouter(tags=["AI Screening"])
@@ -19,25 +23,21 @@ def run_screening(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_hr)
 ):
-    """
-    AI Pipeline:
-    1. Resume Collection  — load resume paths from Applications table
-    2. Text Extraction    — pdfplumber (PDF) / python-docx (DOCX)
-    3. NLP Processing     — spaCy tokenize, stopword removal, lemmatization
-    4. Semantic Matching  — Sentence Transformer all-MiniLM-L6-v2 embeddings
-    5. Candidate Ranking  — cosine similarity score → sort descending
-    """
-    job = db.query(models.Job).filter(models.Job.job_id == job_id).first()
+    # Job must exist AND belong to this HR
+    job = db.query(models.Job).filter(
+        models.Job.job_id    == job_id,
+        models.Job.posted_by == current_user.id       # ← key check
+    ).first()
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=403,
+            detail="Job not found or you do not have access to this job."
+        )
 
     job_text = (
-        f"Title: {job.title}. "
-        f"Description: {job.description}. "
-        f"Sector: {job.sector}. "
-        f"Education: {job.education_required}. "
-        f"Skills: {job.skills_required}. "
-        f"Experience: {job.experience_required}."
+        f"Title: {job.title}. Description: {job.description}. "
+        f"Sector: {job.sector}. Education: {job.education_required}. "
+        f"Skills: {job.skills_required}. Experience: {job.experience_required}."
     )
     clean_job = preprocess_text(job_text)
 
@@ -48,21 +48,21 @@ def run_screening(
         .all()
     )
     if not applications:
-        return {"message": "No applicants found", "rankings": []}
+        return {"message": "No applicants found for this job", "rankings": []}
 
     rankings, errors = [], []
 
     for application, candidate in applications:
         try:
-            resume_text = extract_text_from_resume(application.resume_path)
+            resume_text  = extract_text_from_resume(application.resume_path)
             if not resume_text.strip():
                 errors.append({"candidate": candidate.name, "error": "Empty resume"})
                 continue
 
             clean_resume = preprocess_text(resume_text)
-            score_val    = compute_similarity(clean_job, clean_resume)
-            score_pct    = round(score_val * 100, 2)
+            score_pct    = round(compute_similarity(clean_job, clean_resume) * 100, 2)
 
+            # Upsert score
             existing = db.query(models.MatchScore).filter(
                 models.MatchScore.candidate_id == candidate.id,
                 models.MatchScore.job_id       == job_id
@@ -71,7 +71,9 @@ def run_screening(
                 existing.score = score_pct
             else:
                 db.add(models.MatchScore(
-                    candidate_id=candidate.id, job_id=job_id, score=score_pct
+                    candidate_id=candidate.id,
+                    job_id=job_id,
+                    score=score_pct
                 ))
 
             rankings.append({

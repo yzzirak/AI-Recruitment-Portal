@@ -91,6 +91,9 @@ def inject_css():
         box-shadow:0 8px 32px rgba(0,0,0,0.1) !important;
         padding:2rem !important;
     }
+                .stButton > button {
+    white-space: nowrap !important;
+}
     </style>
     """, unsafe_allow_html=True)
 
@@ -263,55 +266,54 @@ def hr_dashboard():
     with st.sidebar:
         st.markdown(f"""
         <div style="padding:0.5rem 0 1rem;text-align:center;">
-            <div style="font-size:1.8rem;margin-bottom:0.4rem;">🚀</div>
+            <div style="font-size:1.8rem;margin-bottom:0.4rem;"></div>
             <p style="font-weight:700;font-size:1rem;color:#f1f5f9;margin:0;">{user['name']}</p>
             <p style="font-size:0.78rem;color:#94a3b8;margin:2px 0 0;">
                 {user.get('company_name','HR')} · HireFast</p>
         </div>""", unsafe_allow_html=True)
         st.divider()
         page = st.radio("", [
-            "📊  Overview",
-            "➕  Post new job",
-            "👥  View applicants",
-            "🤖  AI screening",
-            "🔍  Filter candidates",
+            " Overview",
+            " Post new job",
+            " View applicants",
+            " AI screening",
+            " Filter candidates",
         ], label_visibility="collapsed")
         st.divider()
         if st.button("Sign out", use_container_width=True):
             logout()
 
     {
-        "📊  Overview":          hr_overview,
-        "➕  Post new job":      hr_post_job,
-        "👥  View applicants":   hr_applicants,
-        "🤖  AI screening":      hr_ai_screening,
-        "🔍  Filter candidates": hr_filter,
+        " Overview":          hr_overview,
+        " Post new job":      hr_post_job,
+        " View applicants":   hr_applicants,
+        " AI screening":      hr_ai_screening,
+        " Filter candidates": hr_filter,
     }[page]()
 
 
 def hr_overview():
     user = st.session_state.user
-    section_header(f"Welcome, {user['name']}", user.get("company_name", ""))
+    section_header(f"Welcome, {user['name']}", user.get("company_name",""))
 
-    resp = api_get("/jobs")
-    jobs = resp.json() if resp and resp.status_code == 200 else []
-    my_jobs = [j for j in jobs if j.get("posted_by") == user.get("user_id")]
+    resp  = api_get("/my_jobs")
+    jobs  = resp.json() if resp and resp.status_code == 200 else []
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("My job postings", len(my_jobs))
-    c2.metric("Total jobs",      len(jobs))
-    c3.metric("Shortlisted",     "—")
-    c4.metric("AI screened",     "—")
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("My job postings",  len(jobs))
+    c2.metric("Total applicants", "—")
+    c3.metric("Shortlisted",      "—")
+    c4.metric("AI screened",      "—")
 
     st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
     st.markdown(
         '<h3 style="color:#111827;font-weight:600;margin-bottom:0.75rem;">My recent postings</h3>',
         unsafe_allow_html=True
     )
-    if not my_jobs:
+    if not jobs:
         st.info("You haven't posted any jobs yet. Use **Post new job** to get started.")
         return
-    for job in my_jobs[:6]:
+    for job in jobs[:6]:
         _job_card(job)
 
 
@@ -360,7 +362,7 @@ def hr_post_job():
             st.rerun()
 
     if st.session_state.job_posting:
-        with st.spinner("Posting job, please wait…"):
+        with st.spinner("Posting job..."):
             resp = api_post("/create_job", json={
                 "title":               st.session_state.get("job_title", ""),
                 "description":         st.session_state.get("job_desc",  ""),
@@ -372,7 +374,7 @@ def hr_post_job():
         st.session_state.job_posting = False
 
         if resp and resp.status_code == 200:
-            st.success(f"✅ {resp.json().get('message','Job posted!')} — ID: {resp.json().get('job_id')}")
+            st.success(f" {resp.json().get('message','Job posted')} — ID: {resp.json().get('job_id')}")
             for k in ["job_title","job_desc","job_exp","job_skills"]:
                 st.session_state.pop(k, None)
         elif resp:
@@ -382,17 +384,18 @@ def hr_post_job():
 
 
 def hr_applicants():
-    section_header("View applicants", "Review and manage candidates")
+    section_header("View applicants", "Candidates who applied to your jobs")
 
-    resp = api_get("/jobs")
+    # Only this HR's jobs
+    resp = api_get("/my_jobs")
     if not resp or resp.status_code != 200:
-        st.error("Could not load jobs."); return
+        st.error("Could not load your jobs."); return
     jobs = resp.json()
     if not jobs:
-        st.info("No jobs posted yet."); return
+        st.info("You haven't posted any jobs yet."); return
 
-    opts     = {f"[{j['job_id']}] {j['title']} — {j['company_name']}": j["job_id"] for j in jobs}
-    selected = st.selectbox("Select job", list(opts.keys()))
+    opts     = {f"[{j['job_id']}] {j['title']}": j["job_id"] for j in jobs}
+    selected = st.selectbox("Select your job", list(opts.keys()))
     job_id   = opts[selected]
 
     resp2 = api_get(f"/job_applicants/{job_id}")
@@ -422,7 +425,6 @@ def hr_applicants():
         "shortlisted": ("Shortlisted", "green"),
         "rejected":    ("Rejected",    "red"),
     }
-
     for app in applicants:
         label, color = status_map.get(app["status"], (app["status"],"gray"))
         score_str = (
@@ -460,17 +462,18 @@ def hr_applicants():
 
 
 def hr_ai_screening():
-    section_header("AI resume screening", "Rank candidates by resume-job match")
+    section_header("AI resume screening", "Rank candidates for your jobs")
 
-    resp = api_get("/jobs")
+    # Only this HR's jobs
+    resp = api_get("/my_jobs")
     if not resp or resp.status_code != 200:
-        st.error("Could not load jobs."); return
+        st.error("Could not load your jobs."); return
     jobs = resp.json()
     if not jobs:
-        st.info("No jobs available."); return
+        st.info("You haven't posted any jobs yet."); return
 
-    opts     = {f"[{j['job_id']}] {j['title']} — {j['company_name']}": j["job_id"] for j in jobs}
-    selected = st.selectbox("Select job to screen", list(opts.keys()))
+    opts     = {f"[{j['job_id']}] {j['title']}": j["job_id"] for j in jobs}
+    selected = st.selectbox("Select your job to screen", list(opts.keys()))
     job_id   = opts[selected]
 
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
@@ -531,10 +534,10 @@ def hr_ai_screening():
                     </div>
                 </div>""", unsafe_allow_html=True)
 
+            st.caption("Go to View applicants to shortlist or reject candidates.")
             df = pd.DataFrame(rankings)[["rank","candidate_name","candidate_email","match_score","status"]]
             df.columns = ["Rank","Name","Email","Score (%)","Status"]
             st.dataframe(df, use_container_width=True)
-            st.caption("Go to View applicants to shortlist or reject candidates.")
 
 
 def hr_filter():
@@ -581,16 +584,16 @@ def candidate_dashboard():
         </div>""", unsafe_allow_html=True)
         st.divider()
         page = st.radio("", [
-            "💼  Browse jobs",
-            "📋  My applications",
+            "  Browse jobs",
+            "  My applications",
         ], label_visibility="collapsed")
         st.divider()
         if st.button("Sign out", use_container_width=True):
             logout()
 
     {
-        "💼  Browse jobs":     cand_browse_jobs,
-        "📋  My applications": cand_my_applications,
+        "  Browse jobs":     cand_browse_jobs,
+        "  My applications": cand_my_applications,
     }[page]()
 
 
@@ -630,7 +633,7 @@ def cand_browse_jobs():
     if not jobs:
         st.info("No openings available at the moment."); return
 
-    search   = st.text_input("🔍 Search by title, company or sector",
+    search   = st.text_input(" Search by title, company or sector",
                               placeholder="Python, Google, Healthcare…")
     filtered = [
         j for j in jobs if not search or
@@ -687,28 +690,40 @@ def cand_apply_form():
     )
     uploaded = st.file_uploader("PDF or DOCX only", type=["pdf","docx"], label_visibility="collapsed")
 
-    c1, c2 = st.columns([1,5])
-    with c1:
-        if st.button("Submit →", type="primary"):
-            if not uploaded:
-                st.warning("Please upload your resume before submitting.")
+    col1, col2 = st.columns([2,2])
+
+    with col1:
+        submit_clicked = st.button("Submit →", use_container_width=True, type="primary")
+
+    with col2:
+        back_clicked = st.button("← Back to jobs", use_container_width=True)
+
+    if back_clicked:
+        st.session_state.applying_to = None
+        st.rerun()
+
+    if submit_clicked:
+        if not uploaded:
+            st.warning("Please upload your resume before submitting.")
+        else:
+            with st.spinner("Submitting application…"):
+                files = {
+                "resume": (uploaded.name, uploaded.getvalue(), "application/octet-stream")
+            }
+                resp = requests.post(
+                f"{API_BASE}/apply_job",
+                data={"job_id": job["job_id"]},
+                files=files,
+                headers=hdrs()
+            )
+
+            if resp.status_code == 200:
+                st.success(" Application submitted successfully!")
+                st.session_state.applying_to = None
+                st.rerun()
             else:
-                with st.spinner("Submitting application…"):
-                    files = {"resume":(uploaded.name, uploaded.getvalue(), "application/octet-stream")}
-                    resp  = requests.post(
-                        f"{API_BASE}/apply_job",
-                        data={"job_id": job["job_id"]},
-                        files=files,
-                        headers=hdrs()
-                    )
-                if resp.status_code == 200:
-                    st.success("✅ Application submitted successfully!")
-                    st.session_state.applying_to = None
-                    st.rerun()
-                else:
-                    st.error(resp.json().get("detail","Submission failed."))
-    with c2:
-        if st.button("← Back to jobs"):
+                st.error(resp.json().get("detail", "Submission failed."))
+
             st.session_state.applying_to = None
             st.rerun()
 

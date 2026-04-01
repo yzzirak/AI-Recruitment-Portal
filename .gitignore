@@ -6,3 +6,4 @@ __pycache__/
 uploads/resumes/
 backend/uploads/
 *.db
+.vscode/
