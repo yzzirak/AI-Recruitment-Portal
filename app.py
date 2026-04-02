@@ -464,7 +464,6 @@ def hr_applicants():
 def hr_ai_screening():
     section_header("AI resume screening", "Rank candidates for your jobs")
 
-    # Only this HR's jobs
     resp = api_get("/my_jobs")
     if not resp or resp.status_code != 200:
         st.error("Could not load your jobs."); return

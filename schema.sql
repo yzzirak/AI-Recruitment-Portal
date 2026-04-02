@@ -1,15 +1,3 @@
--- ══════════════════════════════════════════════════════════
--- HireFast — PostgreSQL Schema
--- Project: AI-Based Resume Screening and Job Description
---          Matching System (Minor Project Synopsis)
--- ══════════════════════════════════════════════════════════
-
--- Step 1: create the database (run as superuser)
--- CREATE DATABASE hirefast;
-
--- Step 2: connect and run this file
--- psql -U postgres -d hirefast -f schema.sql
-
 CREATE TABLE IF NOT EXISTS users (
     id         SERIAL PRIMARY KEY,
     name       VARCHAR(100) NOT NULL,
