@@ -1,16 +1,11 @@
-"""
-email_utils.py
-Sends the reset email using SMTP. If SMTP is not configured,
-returns False and the app falls back to demo mode.
-"""
 import os
 import smtplib
 from email.message import EmailMessage
 
-SMTP_HOST = os.getenv("SMTP_HOST")          # e.g. smtp.gmail.com
+SMTP_HOST = os.getenv("SMTP_HOST")        
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER")          # your email
-SMTP_PASS = os.getenv("SMTP_PASS")          # Gmail App Password
+SMTP_USER = os.getenv("SMTP_USER")         
+SMTP_PASS = os.getenv("SMTP_PASS")         
 
 
 def smtp_configured() -> bool:
