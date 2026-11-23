@@ -58,3 +58,34 @@ def require_candidate(current_user: models.User = Depends(get_current_user)) -> 
     if current_user.role != "Candidate":
         raise HTTPException(status_code=403, detail="Candidate access only")
     return current_user
+
+RESET_TOKEN_EXPIRE_MINUTES = 15
+
+def create_reset_token(user: models.User) -> str:
+    """
+    Short-lived JWT used only for password reset.
+    'pw' holds the tail of the current password hash, so the token
+    becomes invalid as soon as the password is changed (single use).
+    """
+    payload = {
+        "user_id": user.id,
+        "purpose": "reset",
+        "pw":      user.password[-10:],
+        "exp":     datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES),
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_reset_token(token: str, db: Session):
+    """Returns the User if the token is valid, otherwise None."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+
+    if payload.get("purpose") != "reset":
+        return None
+
+    user = db.query(models.User).filter(models.User.id == payload.get("user_id")).first()
+    if not user or user.password[-10:] != payload.get("pw"):
+        return None          # password already changed -> token used up
+    return user

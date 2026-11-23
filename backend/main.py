@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from database import engine, get_db, Base
-from auth import hash_password, verify_password, create_access_token, get_current_user
+from auth import (hash_password, verify_password, create_access_token,
+                  get_current_user, create_reset_token, verify_reset_token)
+from email_utils import send_reset_email
 import models
 from job_routes         import router as job_router
 from application_routes import router as app_router
@@ -41,6 +43,13 @@ class LoginRequest(BaseModel):
     email:    str
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token:        str
+    new_password: str
 
 @app.post("/register", tags=["Auth"])
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
@@ -93,6 +102,41 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         "company_name": user.company_name
     }
 
+@app.post("/forgot_password", tags=["Auth"])
+def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == req.email.strip()).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not registered")
+
+    token = create_reset_token(user)
+    emailed = send_reset_email(user.email, token)
+
+    if emailed:
+        return {"message": "Reset code sent to your email", "demo_mode": False}
+
+    # SMTP not configured -> demo mode (for college demo only)
+    print(f"[DEMO] Reset code for {user.email}: {token}")
+    return {
+        "message":    "Email not configured — demo mode",
+        "demo_mode":  True,
+        "reset_token": token
+    }
+
+
+@app.post("/reset_password", tags=["Auth"])
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if len(req.new_password.encode()) > 72:
+        raise HTTPException(status_code=400, detail="Password too long (max 72 characters)")
+
+    user = verify_reset_token(req.token.strip(), db)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+
+    user.password = hash_password(req.new_password)
+    db.commit()
+    return {"message": "Password reset successful. Please sign in."}
 
 @app.get("/me", tags=["Auth"])
 def me(current_user: models.User = Depends(get_current_user)):
